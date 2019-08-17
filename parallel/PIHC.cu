@@ -883,6 +883,7 @@ void christofide_init(int *r, float *posx, float *posy, long cities)
 	}
 	//odd_array has all nodes with odd degrees
 	v = (int*) calloc(size, sizeof(int));
+	//make sure there are even no.s of odd degree nodes
 	assert(size % 2 == 0);
 	fp = fopen("odd_edges.txt", "w");
 	//foul play case
@@ -892,6 +893,7 @@ void christofide_init(int *r, float *posx, float *posy, long cities)
 	{
 		for (j = i+1; j < size; j++) 
 		{
+			//store the matrix into a file
 		fprintf(fp, "%d %d %ld\n", i, j, distD(odd_array[i],odd_array[j],posx,posy));
 		}
 	}
@@ -901,7 +903,7 @@ void christofide_init(int *r, float *posx, float *posy, long cities)
 		printf("\nError: please install blossom5 matching code\n");
 		exit(-1);
 	}
-
+	
 	fp = fopen("min_edges.txt", "r");
 	fgets(line, sizeof(line), fp); 
 	for (i = 0; i < size/2; i++) 
@@ -941,10 +943,12 @@ void christofide_init(int *r, float *posx, float *posy, long cities)
 		}
 		
 	}
+	//we have either i or jth city is a leaf node
 	if(flag == 1)
-	{
+	{	//i is a leaf node
 		if(deg[p->i] == 1 )
-		{	i = p->i;
+		{	//start at the leaf node, make the other one the first non leaf
+			i = p->i;
 			node1 = (struct eul_tour*)malloc(sizeof(struct eul_tour));
 			node1->city = i;
 			node1->next = NULL;
@@ -991,11 +995,11 @@ void christofide_init(int *r, float *posx, float *posy, long cities)
 		count = 2;
 		p = head;
 		while(count != cities)
-		{
+		{	//if j for the i you're considering is not 1, 
 			if(deg[j]!= 1)
 			{
 				if(p->i == j && !v[p->j])
-				{
+				{//if you're considering i, and it's neighbour j isnt' discovered yet, make it the next node
 					node1 = (struct eul_tour*)malloc(sizeof(struct eul_tour));
 					node1->city = p->j;
 					node1->next = NULL;
@@ -1036,12 +1040,12 @@ void christofide_init(int *r, float *posx, float *posy, long cities)
 
 				}
 				else
-				{
+				{	//traverse to find the node where 
 					p = head;
 					while(p != NULL)
 					{
 						if( (p->i != j || v[p->j]) && (p->j != j || v[p->i]) )
-						{
+						{//the node i, j is explored, or the node doesn't have j
 							p = p->next;
 
 						}
@@ -1052,11 +1056,11 @@ void christofide_init(int *r, float *posx, float *posy, long cities)
 						}
 					}
 					if(flg == 0)
-					{
+					{//p is null
 						var_deg[j]++;
 						et = curr-> prev;
 						if(rev_node == NULL)
-						{
+						{//we need to loop to visit both
 							loop = (struct rev_visit *)malloc(sizeof(struct rev_visit));
 							loop->i = j;
 							while(deg[et->city] == var_deg[et->city] || et->city == j)
@@ -1122,7 +1126,7 @@ void christofide_init(int *r, float *posx, float *posy, long cities)
 		}
 	}
 	else
-	{
+	{//if flag==0
 		v = (int*) calloc(cities, sizeof(int));
 		p = head;
 		i = 0;
@@ -1163,10 +1167,10 @@ void clarke_wright_init(int *r, float *posx, float *posy, long cities, long no_p
 
 	struct clarke_wright *cw,*cur,*cw1,*cw2;
 	struct clarke_wright *top = NULL;
-
+	//centre is 0th city
 	for(i=1; i<cities-1; i++)
 		for(j=i+1; j<cities; j++)
-		{
+		{//make new node and store distance 
 			cw = (struct clarke_wright*)malloc(sizeof(struct clarke_wright) );
 			cw->save = distD(0,i,posx,posy) + distD(0,j,posx,posy) - distD(i,j,posx,posy);
 			cw->i = i;
