@@ -13,19 +13,19 @@ __host__ __device__ long distD(int i,int j,float *x,float*y)
 	float dy=y[i]-y[j]; 
 	return(sqrtf( (dx*dx) + (dy*dy) ));
 }
-
+//all these strats are for the two opt move,
 /*A kenel function that finds a minimal weighted neighbor using TPR mapping strategy*/
 __global__ void tsp_tpr(float *pox,float *poy,long initcost,unsigned long long *dst_tid,long cit)
 {
-
+	//threads per row strategy
 	long id,j;
 	register long change,mincost=initcost,cost;
 	long i=threadIdx.x+blockIdx.x*blockDim.x;
 	if(i < cit)
-	{
+	{	//
 		
 		for(j=i+1;j<cit;j++)
-		{
+		{//pox and poy are arrays that store the positions (x y) of ith city
 			change = 0; cost=initcost;
 			change=distD(i,j,pox,poy)+distD((i+1)%cit,(j+1)%cit,pox,poy)-distD(i,(i+1)%cit,pox,poy)-distD(j,(j+1)%cit,pox,poy);
 			cost+=change;	
@@ -51,7 +51,7 @@ __global__ void tsp_tpred(float *pox,float *poy,long initcost,unsigned long long
 	long i=threadIdx.x+blockIdx.x*blockDim.x;
 	if(i < cit)
 	{
-		
+		//itr is how many iterations we can stand to do.
 		for(k=0;k<itr;k++)
 		{
 			change = 0; cost=initcost;
@@ -82,6 +82,7 @@ __global__ void tsp_tprc(float *pox,float *poy,long initcost,unsigned long long 
 	long change,cost;
 	long i=threadIdx.x+blockIdx.x*blockDim.x;
 	long j=threadIdx.y+blockIdx.y*blockDim.y;
+	//if city in bounds and the column you choose is more than the row, so there is no repeat issues
 	if(i < cit && j < cit && i < j)
 	{
 		
@@ -124,6 +125,7 @@ void twoOpt(long x,long y,float *pox,float *poy)
 {
 	float *tmp_x,*tmp_y;
 	int i,j;
+	
 	tmp_x=(float*)malloc(sizeof(float)*(y-x));	
 	tmp_y=(float*)malloc(sizeof(float)*(y-x));	
 	for(j=0,i=y;i>x;i--,j++)
@@ -153,7 +155,7 @@ void setCoord(int *r,float *posx,float *posy,float *px,float *py,long cities)
 }
 /* Initial solution construction using NN */
 long nn_init(int *route,long cities,float *posx,float*posy)
-{
+{	//route stores the route taken, cities is the number of cities, posx and posy are the positions of the ith city
 	route[0]=0;
 	int k=1,i=0,j;
 	float min;
@@ -165,7 +167,7 @@ long nn_init(int *route,long cities,float *posx,float*posy)
 	{
 		flag=0;
 		for(j=1;j<cities;j++)
-		{
+		{	//if j isn't visited yet
 			if(i!=j && !visited[j])
 			{
 				min=distD(i,j,posx,posy);
@@ -173,9 +175,9 @@ long nn_init(int *route,long cities,float *posx,float*posy)
 				break;	
 			}
 		}
-
+		//for the minimum cost j
 		for(j=minj+1;j<cities;j++)
-		{
+		{//for every node from the min cost, if you haven't visited, then check and generate the pair
 			
 			 if( !visited[j])
 			{
@@ -266,10 +268,10 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 	count = 1;
 	v[0]=1;
 	while(count != cities)
-	{
+	{//as long as there are new cities
 		min = 0;
 		for(route = first; route != NULL; route=route->next)
-		{
+		{//traverse the whole route to find the shortest edge
 			i = route->city;
 			for(j = 0; j < cities; j++)
 			{
@@ -292,7 +294,9 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 				}
 			}
 		}
+		//setting that node on edge to explored
 		v[minJ]=1;
+		//when you're starting out
 		if(count < 3)
 		{
 			if(first->city == minI)
@@ -335,16 +339,17 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 			}
 		}
 		else
-		{
+		{//more than 3 nodes
 			p1 = first;
 			min_i = p1->city;
 			min_j = p1->next->city;
 			min_diff = distD(min_i,minJ,posx,posy) + distD(minJ,min_j,posx,posy) - distD(min_i,min_j,posx,posy);
 			p1 = p1->next;
 			while(p1->next!=NULL)
-			{
+			{//go through the path
 				i = p1->city;
 				j = p1->next->city;
+				//check two opt
 				diff = distD(i,minJ,posx,posy) + distD(minJ,j,posx,posy) - distD(i,j,posx,posy);
 				if(min_diff > diff )
 				{
@@ -357,6 +362,7 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 			i = p1->city;
 			j = 0;
 			diff = distD(i,minJ,posx,posy) + distD(minJ,j,posx,posy) - distD(i,j,posx,posy);
+			//and cycle around
 			if(min_diff > diff )
 			{
 				min_diff = diff;
@@ -423,13 +429,14 @@ void greedy(int *r, float *posx, float *posy, long cities)
 	min = 0;
 
 	while(count != cities)
-	{
+	{	//operate from the first city,
 		i = first->city;
 		min = 0;
+		//keep exploring cities
 		for(j = 0; j < cities; j++)
-		{
+		{	//until you find a new one
 			if(!v[j] && i != j)
-			{
+			{	//calc distance and store min dist
 				dist = distD(i,j,posx,posy);
 				if(min==0)
 				{
@@ -446,11 +453,12 @@ void greedy(int *r, float *posx, float *posy, long cities)
 				}
 			}
 		}
+		//if this is not the first pass
 		if(first != current)
 		{
 			i = current->city;
 			for(j = 0; j < cities; j++)
-			{
+			{//then store into list. basically the same because we needed cases
 				if(!v[j] && i != j)
 				{
 					dist = distD(i,j,posx,posy);
@@ -464,7 +472,7 @@ void greedy(int *r, float *posx, float *posy, long cities)
 			}
 		}
 		v[minJ]=1;
-
+		
 		if(first->city == minI)
 		{
 			if(first->next == NULL)
@@ -525,6 +533,7 @@ struct eul_tour
 	struct eul_tour *prev;	
 };
 /* Initial solution construction using MST approach */
+//minimum spanning tree
 void mst_init(int *r, float *posx, float *posy, long cities)
 {
 	int *deg,*var_deg,dist;
@@ -546,16 +555,16 @@ void mst_init(int *r, float *posx, float *posy, long cities)
 	p1 =first;
 	v[0] = 1;
 	while(count != cities )
-	{	
+	{	//while all cities aren't explored
 		min = 0;
 	
 		for(p1 = first; p1!=NULL; p1=p1->next)
 		{	
-
+			//fix a node,
 			i = p1->city;
 			for(j = 0; j < cities; j++)
 			{
-				
+				//check and find the smallest edge with that node
 				if(i != j && !v[j])
 				{
 					dist = distD(i,j,posx,posy);
@@ -575,7 +584,7 @@ void mst_init(int *r, float *posx, float *posy, long cities)
 				}
 		
 			}
-
+		
 		}
 		v[min_j] =1;
 		visited = (struct visit_list*)malloc(sizeof(struct visit_list));
@@ -583,16 +592,17 @@ void mst_init(int *r, float *posx, float *posy, long cities)
 		visited->next = NULL;
 		current->next =visited;
 		current = current->next;
-	
+		//and now add that edge
 		deg[min_i]+=1;
 		deg[min_j]+=1;
-
+		//make a node of the mst,
+		//and add that edge
 		node = (struct MST*)malloc(sizeof(struct MST));
 		node->i = min_i;
 		node->j = min_j;
 		node->weight = min;
 		node->next = NULL;
-
+		//linked list stuff
 		if(head == NULL)
 		{
 			node->prev = NULL;
@@ -611,10 +621,13 @@ void mst_init(int *r, float *posx, float *posy, long cities)
 	v = (int*) calloc(cities, sizeof(int));
 	var_deg = (int*) calloc(cities, sizeof(int));
 	p = head;
+	//find a leaf,
 	while(deg[p->i] != 1 && deg[p->j] != 1)
 		p = p->next;
+	//take the leaf city, 
 	if(deg[p->i] == 1 )
-	{	i = p->i;
+	{	//take the leaf,make it a node in the euler tour, make the jth node the other node of the edge in the tour,
+		i = p->i;
 		node1 = (struct eul_tour*)malloc(sizeof(struct eul_tour));
 		node1->city = i;
 		node1->next = NULL;
@@ -655,7 +668,7 @@ void mst_init(int *r, float *posx, float *posy, long cities)
 		v[j] = 1;	
 		var_deg[j]++;
 	}
-
+	//now we have 2 nodes, ie one edge,
 	count = 2;
 	p = head;
 	while(count != cities)
@@ -726,6 +739,7 @@ void mst_init(int *r, float *posx, float *posy, long cities)
 	}
 
 }
+//if the edge exists, then return 1
 int searchEdge(int min_i,int min_j, struct MST * p)
 {
 	int flag =0;
@@ -834,6 +848,7 @@ void christofide_init(int *r, float *posx, float *posy, long cities)
 	}
 	p = head;
 	size = 0;
+	//make set of all odd degree nodes,
 	for(i = 0; i < cities; i++)
 	{
 		if(deg[i]%2 != 0)
@@ -866,9 +881,11 @@ void christofide_init(int *r, float *posx, float *posy, long cities)
 		odd_array[i++] = odd->city;
 		odd = odd->next;
 	}
+	//odd_array has all nodes with odd degrees
 	v = (int*) calloc(size, sizeof(int));
 	assert(size % 2 == 0);
 	fp = fopen("odd_edges.txt", "w");
+	//foul play case
 	assert(size >= 2);
 	fprintf(fp, "%d %d\n", size, (size*(size-1))/2);
 	for (i = 0; i < size; i++) 
