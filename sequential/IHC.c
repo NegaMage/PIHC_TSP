@@ -118,6 +118,7 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 	struct nearest_insert *node,*p1,*tmp,*current,*route,*first = NULL;
 	int i,j,dist,min=0;
 	int count,minI,minJ; 
+	//minI is the index of I and J that are used to find minimum dist
 	int min_diff,diff,min_i,min_j; 
 	int *v;
 	v = (int *)calloc(cities, sizeof(int));
@@ -129,25 +130,27 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 	count = 1;
 	v[0]=1;
 	while(count != cities)
-	{
-		min = 0;
+	{	//as long as all cities haven't been explored
+		min = 0;//minimum distance the thing will take
 		for(route = first; route != NULL; route=route->next)
-		{
+		{	//route is a linked list, and we're going through it
 			i = route->city;
 			for(j = 0; j < cities; j++)
-			{
+			{	//for the other nodes,
 				if(i !=j &&!v[j])
-				{
+				{	//so long as you aren't exploring the same node from itself,
+					// and you aren't rediscovering nodes,
 					dist = distD(i,j,posx,posy);
+					//find the distance it would take to add
 					if(min==0)
-					{
+					{//initialisation of min
 						min=dist;
 						minI=i;
 						minJ=j;
 	
 					}
 					if(min>dist)
-					{
+					{//wait so the code is the same?
 						min=dist;
 						minI=i;
 						minJ=j;
@@ -155,13 +158,15 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 				}
 			}
 		}
+		//set J as explored
 		v[minJ]=1;
 		if(count < 3)
-		{
+		{//now we have chosen at least 3 nodes. Otherwise, the graph has unique structure,
+			//and it pays to check individual case
 			if(first->city == minI)
-			{
+			{	//if you just started exploring
 				if(first->next == NULL)
-				{
+				{	//make a new node, call it j
 					node = (struct nearest_insert *)malloc(sizeof(struct nearest_insert ));
 					node->city = minJ;
 					node->next = NULL;
@@ -169,7 +174,7 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 					current = current->next;
 				}
 				else
-				{
+				{	//now inserting a new node to the end, between first and the next.
 					tmp = first->next;
 					node = (struct nearest_insert *)malloc(sizeof(struct nearest_insert ));
 					node->city = minJ;
@@ -178,7 +183,7 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 				}
 			}
 			else if(current->city == minI)
-			{
+			{		//if the city you're exploring is back at i'th position.
 					node = (struct nearest_insert *)malloc(sizeof(struct nearest_insert ));
 					node->city = minJ;
 					node->next = NULL;
@@ -186,7 +191,7 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 					current = current->next;
 			}
 			else
-			{
+			{	//If you're in the middle of a traversal
 				p1 = first->next;
 				while (p1->city != minI)
 					p1=p1->next;
@@ -197,15 +202,15 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 				p1->next = node;
 			}
 		}
-		else
-		{
-			p1 = first;
-			min_i = p1->city;
-			min_j = p1->next->city;
+		else//you've had more than three nodes.
+		{	
+			p1 = first;//p1 is for traversal through the list
+			min_i = p1->city;//so you have the city no. of the first node
+			min_j = p1->next->city;//and of j
 			min_diff = distD(min_i,minJ,posx,posy) + distD(minJ,min_j,posx,posy) - distD(min_i,min_j,posx,posy);
 			p1 = p1->next;
 			while(p1->next!=NULL)
-			{
+			{	//check through all adjacent pairs, and find the min difference and replace as needed.
 				i = p1->city;
 				j = p1->next->city;
 				diff = distD(i,minJ,posx,posy) + distD(minJ,j,posx,posy) - distD(i,j,posx,posy);
@@ -217,6 +222,7 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 				}
 				p1 = p1->next;	
 			}
+			//checking the first and last cities, because the loop can't check this part.
 			i = p1->city;
 			j = 0;
 			diff = distD(i,minJ,posx,posy) + distD(minJ,j,posx,posy) - distD(i,j,posx,posy);
@@ -226,9 +232,10 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 				min_i = i;
 				min_j = j;
 			}
-
+			//if you're at the min_i position
 			if(current->city == min_i)
-			{
+			{	//then make a new node, and put it as the new minJ, and insert it to end of the list.
+				//update current to this node.
 				node = (struct nearest_insert *)malloc(sizeof(struct nearest_insert ));
 				node->city = minJ;
 				node->next = NULL;
@@ -236,11 +243,12 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 				current = current->next;
 			}
 			else
-			{
+			{	//then traverse to the min_i,
 				p1 = first;
 				while (p1->city != min_i)
 				{	p1=p1->next;}
 				tmp = p1->next;
+				//find the min_i and push it to end of list.
 				node = (struct nearest_insert *)malloc(sizeof(struct nearest_insert ));
 				node->city = minJ;
 				node->next = tmp;
@@ -252,7 +260,7 @@ void nearest_insertion(int *r, float *posx, float *posy, long cities)
 	i=0;
 	p1=first;
 	while(p1!=NULL)
-	{
+	{	//store the path
 		r[i] = p1->city;
 		p1=p1->next;
 		i++;
@@ -266,9 +274,9 @@ struct greedy
 };
 /* Initial solution construction using greedy approach */
 void greedy(int *r, float *posx, float *posy, long cities)
-{
+{	//make some placement nodes
 	struct greedy *node,*p1,*current,*first = NULL;
-
+	
 	int i,j,min=0,dist;
 	int count,minI,minJ; 
 	int *v;
@@ -290,9 +298,9 @@ void greedy(int *r, float *posx, float *posy, long cities)
 		i = first->city;
 		min = 0;
 		for(j = 0; j < cities; j++)
-		{
+		{//for all cities
 			if(!v[j] && i != j)
-			{
+			{//if the city hasn't been explored, and you aren't exploring yourself
 				dist = distD(i,j,posx,posy);
 				if(min==0)
 				{
@@ -409,18 +417,18 @@ void mst_init(int *r, float *posx, float *posy, long cities)
 	p1 =first;
 	v[0] = 1;
 	while(count != cities )
-	{	
+	{	//while you haven't explored all cities
 		min = 0;
 	
 		for(p1 = first; p1!=NULL; p1=p1->next)
-		{	
+		{	//exploring the list so far,
 
 			i = p1->city;
 			for(j = 0; j < cities; j++)
-			{
+			{	//for the other cities,
 				
 				if(i != j && !v[j])
-				{
+				{	//if they haven't been explored yet,
 					dist = distD(i,j,posx,posy);
 					if(min == 0 )
 					{
@@ -441,12 +449,13 @@ void mst_init(int *r, float *posx, float *posy, long cities)
 
 		}
 		v[min_j] =1;
+		//setting least distance node as explored
 		visited = (struct visit_list*)malloc(sizeof(struct visit_list));
 		visited->city = min_j;
 		visited->next = NULL;
 		current->next =visited;
 		current = current->next;
-	
+		//we are adding another edge between i and j, incrementing their degrees in the MST
 		deg[min_i]+=1;
 		deg[min_j]+=1;
 
@@ -474,6 +483,7 @@ void mst_init(int *r, float *posx, float *posy, long cities)
 	v = (int*) calloc(cities, sizeof(int));
 	var_deg = (int*) calloc(cities, sizeof(int));
 	p = head;
+	//as long as you don't have some particular isolated edge,
 	while(deg[p->i] != 1 && deg[p->j] != 1)
 		p = p->next;
 	if(deg[p->i] == 1 )
